@@ -38,6 +38,7 @@ Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password-reset messages a
   ```
 
 - Supporting document uploads accept PDF, Office documents, PNG, and JPEG. Uploads are limited to 10 MB. Local development files are stored under `UPLOAD_DIRECTORY` (default `uploads/`, ignored by Git) and are not served publicly; administrators download them through `GET /api/admin/submissions/:id/attachments/:storageKey`.
+- Proposal submissions validate names, email, optional phone and text fields, dates, and allowlisted select values. The API rejects unexpected proposal-detail keys, unsafe control/markup characters, invalid file signatures, and non-empty honeypot values; public requests remain rate-limited.
 - `POST /api/integrations/zoho/bookings` receives Zoho/Zoho Flow JSON with `X-Zoho-Webhook-Secret` and a booking ID, customer name/email, and start time. It accepts common field aliases such as `bookingId`, `customerName`, `customerEmail`, `startTime`, `serviceName`, and `timeZone`; use Zoho Flow to map fields if your Zoho payload differs. Duplicate booking IDs are ignored, and a failed notification can be retried by Zoho.
 - Local disk storage is only for development. Configure private object storage before deploying the API to production or ephemeral hosting.
 - Client-authenticated submissions remain available at `POST /api/client/submissions`.

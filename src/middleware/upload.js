@@ -34,6 +34,11 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(req, file, callback) {
+  if (file.originalname.length > 255 || /[\u0000-\u001f\u007f]/.test(file.originalname)) {
+    const error = new Error('Invalid file name');
+    error.statusCode = 422;
+    return callback(error);
+  }
   const extension = path.extname(file.originalname).toLowerCase();
   const allowedTypes = file.fieldname === 'fontFile' ? fontTypes : documentTypes;
   const validMimeTypes = allowedTypes.get(extension);
