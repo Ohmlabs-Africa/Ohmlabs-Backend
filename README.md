@@ -16,6 +16,8 @@ The API runs on `http://localhost:4000`. The API supports frontend auth flows an
 
 Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password-reset messages and booking notifications. The sender must be verified with Resend. Booking notifications go to `BOOKING_NOTIFICATION_EMAIL`, which defaults to `keith@ohmlabs.africa`. Set `ZOHO_WEBHOOK_SECRET` to enable the Zoho booking webhook.
 
+Set `CLIENT_ORIGIN` to a comma-separated list of exact frontend origins (scheme and hostname, no path), for example `https://ohmlabs.africa,https://www.ohmlabs.africa,http://localhost:3000`. CORS only permits listed origins, supports credentialed refresh-token cookies, and allows requests without an `Origin` header for server-to-server clients. Ensure the deployed frontend uses the same HTTPS origin that is listed here.
+
 ## API
 
 - `POST /api/auth/register` creates a client account.
