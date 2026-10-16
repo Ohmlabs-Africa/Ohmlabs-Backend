@@ -4,6 +4,7 @@ import { env } from '../config/env.js';
 import { sendEmail } from '../utils/email.js';
 import path from 'node:path';
 import { unlinkSync } from 'node:fs';
+import { normalizeProposalDetails } from '../utils/proposalValidation.js';
 
 export async function createSubmission(req, res) {
   const { name, email, company, message, details } = req.body;
@@ -12,7 +13,7 @@ export async function createSubmission(req, res) {
     email,
     company,
     message,
-    details,
+    details: normalizeProposalDetails(details),
     attachments: req.file ? [attachmentMetadata(req.file)] : [],
     owner: req.user?.id || null,
   }, req.file);

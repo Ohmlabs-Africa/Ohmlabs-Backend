@@ -17,6 +17,8 @@ import { publicSubmissionLimiter, webhookLimiter } from './middleware/rateLimit.
 import { contactAttachmentUpload, publicSubmissionUpload } from './middleware/upload.js';
 import integrationRoutes from './routes/integrations.js';
 import { parseDetails } from './middleware/parseDetails.js';
+import { isValidProposalDetails } from './utils/proposalValidation.js';
+import { verifyUploadSignature } from './middleware/verifyUploadSignature.js';
 
 const app = express();
 app.use(helmet());
@@ -32,14 +34,18 @@ app.use('/api/auth', rateLimit({
   legacyHeaders: false,
   handler: (req, res) => res.status(429).json({ success: false, error: 'Too many authentication requests. Please try again later.' }),
 }), authRoutes);
-app.post('/api/contact', publicSubmissionLimiter, contactAttachmentUpload, parseDetails, [
-  body('name').trim().isLength({ min: 2, max: 120 }),
-  body('email').isEmail().normalizeEmail(),
-  body('company').optional().trim().isLength({ max: 160 }),
-  body('message').trim().isLength({ min: 1, max: 5000 }),
-  body('details').optional().custom((value) => typeof value === 'object' && value !== null && !Array.isArray(value)),
+app.post('/api/contact', publicSubmissionLimiter, contactAttachmentUpload, verifyUploadSignature, parseDetails, [
+  body('name').trim().matches(/^[\p{L}\p{M}][\p{L}\p{M} .'\u2019-]{1,119}$/u),
+  body('email').trim().isLength({ max: 254 }).isEmail().normalizeEmail(),
+  body('company').optional({ checkFalsy: true }).trim().isLength({ max: 160 })
+    .custom((value) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value) && !/<\/?[a-z][^>]*>/i.test(value)),
+  body('message').trim().isLength({ min: 1, max: 5000 })
+    .custom((value) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value) && !/<\/?[a-z][^>]*>/i.test(value)),
+  body('details').optional().custom(isValidProposalDetails)
+    .withMessage('Proposal details contain invalid or unsupported values'),
+  body('website').optional().equals('').withMessage('Submission rejected'),
 ], validate, createSubmission);
-app.post('/api/submissions', publicSubmissionLimiter, publicSubmissionUpload, parseDetails, [
+app.post('/api/submissions', publicSubmissionLimiter, publicSubmissionUpload, verifyUploadSignature, parseDetails, [
   body('type').isIn(['font_submission', 'calendar_booking']),
   body('name').trim().isLength({ min: 2, max: 120 }),
   body('email').isEmail().normalizeEmail(),
