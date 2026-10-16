@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 
-export async function sendEmail({ to, subject, text }) {
+export async function sendEmail({ to, subject, text, replyTo }) {
   if (!env.resendApiKey || !env.resendFromEmail) {
     throw new Error('RESEND_API_KEY and RESEND_FROM_EMAIL must be configured to send email');
   }
@@ -11,7 +11,7 @@ export async function sendEmail({ to, subject, text }) {
       Authorization: `Bearer ${env.resendApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: env.resendFromEmail, to, subject, text }),
+    body: JSON.stringify({ from: env.resendFromEmail, to, subject, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
     signal: AbortSignal.timeout(10_000),
   });
 

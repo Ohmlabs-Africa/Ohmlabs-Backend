@@ -17,7 +17,15 @@ export async function createSubmission(req, res) {
     attachments: req.file ? [attachmentMetadata(req.file)] : [],
     owner: req.user?.id || null,
   }, req.file);
-  return ok(res, submission, 'Submission received', 201);
+
+  try {
+    await sendProposalNotification(submission);
+  } catch (error) {
+    console.error(`Proposal notification failed for submission ${submission._id}:`, error);
+    return ok(res, { ...submission.toObject(), notificationSent: false }, 'Proposal received, but the email notification could not be sent', 201);
+  }
+
+  return ok(res, submission, 'Proposal received', 201);
 }
 
 export async function createPublicSubmission(req, res) {
@@ -86,6 +94,42 @@ export async function sendBookingNotification(submission) {
     subject: 'New OHM Labs calendar booking',
     text: bookingSummary,
   });
+  submission.notificationSent = true;
+  await submission.save();
+}
+
+async function sendProposalNotification(submission) {
+  const proposalDetails = submission.details
+    ? Object.entries(submission.details)
+      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value && typeof value === 'object' ? JSON.stringify(value) : value ?? ''}`)
+      .join('\n')
+    : '';
+  const attachmentSummary = submission.attachments.length
+    ? `\nAttachments submitted: ${submission.attachments.map(({ originalName, size }) => `${originalName} (${Math.ceil(size / 1024)} KB)`).join(', ')}\nView and download attachments in the admin dashboard.`
+    : '';
+
+  await sendEmail({
+    to: env.proposalNotificationEmail,
+    replyTo: submission.email,
+    subject: 'New OHM Labs proposal request',
+    text: [
+      'A new proposal request was submitted on ohmlabs.africa.',
+      '',
+      `Name: ${submission.name}`,
+      `Email: ${submission.email}`,
+      submission.company ? `Company: ${submission.company}` : null,
+      '',
+      'Project description:',
+      submission.message || 'Not provided',
+      '',
+      'Additional proposal details:',
+      proposalDetails || 'None provided',
+      attachmentSummary,
+      '',
+      `Submission ID: ${submission._id}`,
+    ].filter((line) => line !== null).join('\n'),
+  });
+
   submission.notificationSent = true;
   await submission.save();
 }

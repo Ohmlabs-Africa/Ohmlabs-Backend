@@ -14,7 +14,7 @@ The API runs on `http://localhost:4000`. The API supports frontend auth flows an
 
 ## Configuration
 
-Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password-reset messages and booking notifications. The sender must be verified with Resend. Booking notifications go to `BOOKING_NOTIFICATION_EMAIL`, which defaults to `keith@ohmlabs.africa`. Set `ZOHO_WEBHOOK_SECRET` to enable the Zoho booking webhook.
+Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password-reset messages and submission notifications. The sender must be verified with Resend. Proposal notifications go to `PROPOSAL_NOTIFICATION_EMAIL`, which defaults to `BOOKING_NOTIFICATION_EMAIL` and then `keith@ohmlabs.africa`. Booking notifications go to `BOOKING_NOTIFICATION_EMAIL`. Set `ZOHO_WEBHOOK_SECRET` to enable the Zoho booking webhook.
 
 Set `CLIENT_ORIGIN` to a comma-separated list of exact frontend origins (scheme and hostname, no path), for example `https://ohmlabs.africa,https://www.ohmlabs.africa,http://localhost:3000`. CORS only permits listed origins, supports credentialed refresh-token cookies, and allows requests without an `Origin` header for server-to-server clients. Ensure the deployed frontend uses the same HTTPS origin that is listed here.
 
@@ -26,6 +26,7 @@ Set `CLIENT_ORIGIN` to a comma-separated list of exact frontend origins (scheme 
 - `POST /api/auth/forgot-password` sends a one-time reset link; `POST /api/auth/reset-password` accepts `{ "token": "...", "password": "..." }`. Reset links expire after 30 minutes.
 - Authentication and password-reset endpoints have per-IP rate limits; public form endpoints are limited to 20 requests per IP per hour.
 - `POST /api/contact` accepts contact/proposal forms as JSON or multipart form data; an optional `attachment` field is accepted. `POST /api/submissions` accepts `font_submission` or `calendar_booking`; font submissions can provide a `fontFile` upload (TTF, OTF, WOFF, WOFF2) or `fontFileUrl`.
+- Proposal requests are saved and emailed via Resend to `PROPOSAL_NOTIFICATION_EMAIL`. If email delivery fails, the proposal remains saved and the API returns `notificationSent: false`; the error is logged for follow-up, so visitors are not prompted to resubmit saved proposals.
 - Example booking request:
 
   ```json
