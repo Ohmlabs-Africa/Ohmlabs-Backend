@@ -12,18 +12,46 @@ const hashToken = (token) => createHash('sha256').update(token).digest('hex');
 
 export async function register(req, res) {
   const { name, email, password } = req.body;
-  const user = await User.create({ name, email, password, role: 'client' });
-  res.cookie('refreshToken', refreshToken(user), cookieOptions);
-  return ok(res, { user: publicUser(user), accessToken: accessToken(user) }, 'Account created', 201);
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: 'client',
+    isActive: false,
+    approvalStatus: 'pending',
+  });
+  let notificationSent = true;
+  try {
+    await sendEmail({
+      to: env.adminNotificationEmail,
+      replyTo: user.email,
+      subject: 'OHM Labs client account approval requested',
+      text: [
+        'A new client account is awaiting approval.',
+        '',
+        `Name: ${user.name}`,
+        `Email: ${user.email}`,
+        `User ID: ${user._id}`,
+        '',
+        'Review this request in the OHM Labs admin dashboard.',
+      ].join('\n'),
+    });
+  } catch (error) {
+    notificationSent = false;
+    console.error(`Admin signup notification failed for user ${user._id}:`, error);
+  }
+  return ok(res, { user: publicUser(user), notificationSent }, 'Registration received. An administrator must approve your account before you can sign in.', 201);
 }
 
 export async function login(req, res) {
   const user = await User.findOne({ email: req.body.email }).select('+password +failedLoginAttempts +lockedUntil');
-  if (!user || !user.isActive || (user.lockedUntil && user.lockedUntil > new Date()) || !(await user.comparePassword(req.body.password))) {
+  if (!user || (user.lockedUntil && user.lockedUntil > new Date()) || !(await user.comparePassword(req.body.password))) {
     if (user) { user.failedLoginAttempts += 1; if (user.failedLoginAttempts >= 5) user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); await user.save(); }
     console.warn('Login failure for:', req.body.email);
     return res.status(401).json({ success: false, error: 'Invalid credentials' });
   }
+  if (user.approvalStatus === 'pending') return res.status(403).json({ success: false, error: 'Your account is awaiting administrator approval.' });
+  if (user.approvalStatus === 'rejected' || !user.isActive) return res.status(403).json({ success: false, error: 'This account is not approved for sign-in. Contact OHM Labs for assistance.' });
   user.failedLoginAttempts = 0; user.lockedUntil = null; await user.save();
   await SignIn.create({ user: user._id });
   res.cookie('refreshToken', refreshToken(user), cookieOptions);
@@ -82,7 +110,9 @@ export async function refresh(req, res) {
     return res.status(401).json({ success: false, error: 'Invalid or expired refresh token' });
   }
   const user = await User.findById(payload.id);
-  if (!user || !user.isActive) return res.status(401).json({ success: false, error: 'Account unavailable' });
+  if (!user || !user.isActive || (user.role === 'client' && user.approvalStatus !== 'approved')) {
+    return res.status(401).json({ success: false, error: 'Account unavailable' });
+  }
   res.cookie('refreshToken', refreshToken(user), cookieOptions);
   return ok(res, { accessToken: accessToken(user) }, 'Token refreshed');
 }
