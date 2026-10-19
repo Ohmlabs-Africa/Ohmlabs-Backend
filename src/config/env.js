@@ -46,6 +46,7 @@ export const env = {
   resendFromEmail: process.env.RESEND_FROM_EMAIL,
   bookingNotificationEmail: process.env.BOOKING_NOTIFICATION_EMAIL || 'keith@ohmlabs.africa',
   proposalNotificationEmail: process.env.PROPOSAL_NOTIFICATION_EMAIL || process.env.BOOKING_NOTIFICATION_EMAIL || 'keith@ohmlabs.africa',
+  adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || 'keith@ohmlabs.africa',
   uploadDirectory: path.resolve(process.env.UPLOAD_DIRECTORY || 'uploads'),
   zohoWebhookSecret: process.env.ZOHO_WEBHOOK_SECRET,
 };

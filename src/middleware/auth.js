@@ -7,7 +7,9 @@ export async function authenticate(req, res, next) {
     if (!header?.startsWith('Bearer ')) return res.status(401).json({ success: false, error: 'Authentication required' });
     const payload = verifyAccess(header.slice(7));
     const user = await User.findById(payload.id).select('+isActive');
-    if (!user || !user.isActive) return res.status(401).json({ success: false, error: 'Account unavailable' });
+    if (!user || !user.isActive || (user.role === 'client' && user.approvalStatus !== 'approved')) {
+      return res.status(401).json({ success: false, error: 'Account unavailable' });
+    }
     req.user = { id: user._id.toString(), role: user.role };
     next();
   } catch (error) {
