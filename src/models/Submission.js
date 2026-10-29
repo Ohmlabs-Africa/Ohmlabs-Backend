@@ -20,6 +20,8 @@ const submissionSchema = new mongoose.Schema({
   bookingDate: { type: Date },
   bookingTime: { type: String, trim: true, maxlength: 80 },
   timezone: { type: String, trim: true, maxlength: 100 },
+  bookingStatus: { type: String, enum: ['scheduled', 'canceled'], default: 'scheduled' },
+  cancellationReason: { type: String, trim: true, maxlength: 1000 },
   service: { type: String, trim: true, maxlength: 200 },
   details: { type: mongoose.Schema.Types.Mixed },
   status: { type: String, enum: ['new', 'in_progress', 'closed'], default: 'new', index: true },

@@ -49,4 +49,5 @@ export const env = {
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || 'keith@ohmlabs.africa',
   uploadDirectory: path.resolve(process.env.UPLOAD_DIRECTORY || 'uploads'),
   zohoWebhookSecret: process.env.ZOHO_WEBHOOK_SECRET,
+  calendlyWebhookSigningKey: process.env.CALENDLY_WEBHOOK_SIGNING_KEY,
 };
